@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSFW // SIBLING_FILM_NETWORK</title>
+    <style>
+        :root {
+            --neon-pink: #ff00ff;
+            --neon-cyan: #00ffff;
+            --vhs-grey: #c0c0c0;
+            --vapor-purple: #240b36;
+            --grid-color: rgba(0, 255, 255, 0.1);
+        }
+
+        body {
+            background-color: #050505;
+            background-image: linear-gradient(var(--grid-color) 1px, transparent 1px),
+                              linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: var(--neon-cyan);
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        /* The "Monitor" Frame */
+        .console {
+            width: 100%;
+            max-width: 500px;
+            background: #1a1a1a;
+            border: 10px solid var(--vhs-grey);
+            border-right: 15px solid #a0a0a0;
+            border-bottom: 15px solid #808080;
+            border-radius: 5px;
+            padding: 15px;
+            box-shadow: 0 0 50px rgba(255, 0, 255, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--neon-pink);
+            text-shadow: 2px 2px var(--neon-cyan);
+            font-style: italic;
+            border-bottom: 3px double var(--neon-cyan);
+            padding-bottom: 10px;
+        }
+
+        /* THE VHS SHELF */
+        .vhs-shelf {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+            padding: 10px;
+            background: #000;
+            border: 2px inset var(--vhs-grey);
+        }
+
+        .vhs-tape {
+            height: 60px;
+            background: #222;
+            border-left: 10px solid var(--neon-pink);
+            display: flex;
+            align-items: center;
+            padding-left: 10px;
+            font-size: 0.8rem;
+            color: #fff;
+            position: relative;
+            transition: 0.3s;
+            overflow: hidden;
+            border: 1px solid #444;
+        }
+
+        .vhs-tape.selected {
+            filter: grayscale(1) opacity(0.4);
+            border-left-color: #555;
+        }
+
+        .vhs-tape::after {
+            content: "VHS";
+            position: absolute;
+            right: 5px;
+            bottom: 2px;
+            font-size: 0.5rem;
+            color: rgba(255,255,255,0.2);
+        }
+
+        /* NOW SHOWING DISPLAY */
+        .now-showing-box {
+            border: 4px solid var(--neon-cyan);
+            margin: 10px 0;
+            background: #000;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .poster-preview {
+            width: 120px;
+            height: 180px;
+            background: #111;
+            margin: 10px auto;
+            border: 1px solid var(--neon-pink);
+            background-size: cover;
+        }
+
+        video {
+            width: 100%;
+            border: 2px solid var(--neon-pink);
+            margin-top: 10px;
+            display: none;
+        }
+
+        .btn {
+            background: var(--vhs-grey);
+            border: 3px outset #eee;
+            color: #000;
+            padding: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            text-transform: uppercase;
+        }
+
+        .btn:active { border-style: inset; transform: translateY(2px); }
+
+        .input-group { margin: 15px 0; }
+        input[type="text"] { width: 90%; padding: 8px; background: #000; color: var(--neon-cyan); border: 1px solid var(--neon-cyan); }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="console">
+    <h1>NSFW // V.02</h1>
+
+    <div id="view-main">
+        <div class="now-showing-box">
+            <div style="font-size: 0.7rem; color: var(--neon-pink);">● NOW SHOWING</div>
+            <div id="active-poster" class="poster-preview"></div>
+            <div id="active-title">INSERT TAPE...</div>
+            <video id="intro-video" controls></video>
+        </div>
+
+        <div style="font-size: 0.8rem; margin-bottom: 5px;">CURRENT QUEUE:</div>
+        <div class="vhs-shelf" id="shelf">
+            </div>
+
+        <button class="btn" onclick="showView('view-upload')">SUBMIT MOVIE</button>
+        <button class="btn" id="spin-btn" onclick="spinSelection()" style="background: var(--neon-pink); color: white;">PLAY RANDOM</button>
+    </div>
+
+    <div id="view-upload" class="hidden">
+        <h3>SUBMIT NEW ENTRY</h3>
+        <div class="input-group">
+            <label>MOVIE TITLE:</label><br>
+            <input type="text" id="movie-name">
+        </div>
+        <div class="input-group">
+            <label>POSTER (IMAGE):</label><br>
+            <input type="file" id="movie-img" accept="image/*">
+        </div>
+        <div class="input-group">
+            <label>EXPLANATION (VIDEO):</label><br>
+            <input type="file" id="movie-vid" accept="video/*" capture="user">
+        </div>
+        <button class="btn" onclick="addMovieToPool()">LOCK IN TAPE</button>
+        <button class="btn" onclick="showView('view-main')">CANCEL</button>
+    </div>
+</div>
+
+<script>
+    let moviePool = [];
+
+    function showView(id) {
+        document.getElementById('view-main').classList.add('hidden');
+        document.getElementById('view-upload').classList.add('hidden');
+        document.getElementById(id).classList.remove('hidden');
+        playTone(200, 'square', 0.1);
+    }
+
+    function addMovieToPool() {
+        const name = document.getElementById('movie-name').value;
+        const img = document.getElementById('movie-img').files[0];
+        const vid = document.getElementById('movie-vid').files[0];
+
+        if (!name || !img || !vid) {
+            alert("ERROR: DATA MISSING");
+            return;
+        }
+
+        const readerImg = new FileReader();
+        readerImg.onload = function(e) {
+            const movieData = {
+                title: name,
+                image: e.target.result,
+                video: URL.createObjectURL(vid),
+                selected: false
+            };
+            moviePool.push(movieData);
+            updateShelf();
+            showView('view-main');
+        };
+        readerImg.readAsDataURL(img);
+    }
+
+    function updateShelf() {
+        const shelf = document.getElementById('shelf');
+        shelf.innerHTML = "";
+        moviePool.forEach((movie, index) => {
+            const tape = document.createElement('div');
+            tape.className = `vhs-tape ${movie.selected ? 'selected' : ''}`;
+            tape.innerHTML = `<span>${movie.title.substring(0, 15)}</span>`;
+            shelf.appendChild(tape);
+        });
+    }
+
+    function spinSelection() {
+        const available = moviePool.filter(m => !m.selected);
+        if (available.length === 0) return alert("QUEUE EMPTY");
+
+        playTone(100, 'sawtooth', 1.0);
+        
+        let counter = 0;
+        let timer = setInterval(() => {
+            document.getElementById('active-title').innerText = available[counter % available.length].title;
+            counter++;
+            if (counter > 10) {
+                clearInterval(timer);
+                const winner = available[Math.floor(Math.random() * available.length)];
+                finalizeSelection(winner);
+            }
+        }, 100);
+    }
+
+    function finalizeSelection(movie) {
+        movie.selected = true;
+        document.getElementById('active-title').innerText = movie.title;
+        document.getElementById('active-poster').style.backgroundImage = `url(${movie.image})`;
+        
+        const v = document.getElementById('intro-video');
+        v.src = movie.video;
+        v.style.display = "block";
+        
+        updateShelf();
+        playTone(600, 'sine', 0.5);
+    }
+
+    function playTone(freq, type, dur) {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        osc.connect(g);
+        g.connect(ctx.destination);
+        osc.start();
+        g.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + dur);
+        osc.stop(ctx.currentTime + dur);
+    }
+</script>
+
+</body>
+</html>
